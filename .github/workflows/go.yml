@@ -1,0 +1,30 @@
+name: go
+
+on:
+  push:
+    branches: [main]
+    paths: ["go/**", ".github/workflows/go.yml"]
+  pull_request:
+    paths: ["go/**", ".github/workflows/go.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: go vet
+        run: go vet ./...
+      - name: go test -race
+        run: go test -race ./...

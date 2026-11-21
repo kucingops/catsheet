@@ -1,4 +1,4 @@
-# Gin REST API: multi login, multi persistence, OOP, testing
+# Gin REST API: multi login, multi persistence, desain ala Go, testing
 
 API notes sederhana yang sengaja dibuat untuk pamer tiga hal sekaligus: beberapa cara login hidup berdampingan, data bisa disimpan dengan atau tanpa database, dan semuanya di-test.
 
@@ -149,7 +149,7 @@ go test -coverprofile=c.out ./... && go tool cover -html=c.out
 | Inject `now func() time.Time` | inject `java.time.Clock` | `NoteService`, `JWTIssuer` |
 | `t.TempDir()`, `t.Cleanup()` | `@TempDir`, `@AfterEach` | store tests |
 | Black-box test (`package store_test`) | test di package lain | store tests |
-| Example function (`// Output:`) | tidak ada padanan langsung | core/oop generics_test.go |
+| Example function (`// Output:`) | tidak ada padanan langsung | core/idiomatic iter_test.go |
 | Fuzz test | jqwik / property-based | domain/domain_test.go |
 | Benchmark `b.Loop()` | JMH | store/memory_test.go |
 

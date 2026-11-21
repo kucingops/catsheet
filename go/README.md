@@ -4,7 +4,7 @@ Cheatsheet Go dari sudut pandang orang Java/Spring. Isinya kode yang bisa dijala
 
 ```
 go/
-├── core/oop/            # OOP ala Go, dibandingkan dengan Java
+├── core/idiomatic/      # gaya Go asli: struct, error, interface kecil, options, iter, goroutine
 └── gin/                 # REST API pakai Gin
     ├── cmd/server/      # main.go: wiring manual + graceful shutdown
     └── internal/
@@ -33,71 +33,61 @@ Dependensi sengaja sedikit: Gin, golang-jwt, x/crypto (bcrypt), dan modernc SQLi
 
 ---
 
-## OOP di Go, buat orang Java
+## Go itu bahasa apa?
 
-Jawaban singkat buat interview: **Go itu object-oriented tanpa class dan tanpa inheritance.** Yang ada struct, method, interface, dan komposisi. Semua contoh di bawah ada kodenya di [`core/oop`](core/oop).
+Jawaban singkat buat interview: **Go itu bahasa prosedural (imperatif) dengan struct, method, interface, dan komposisi.** Bukan OOP berbasis class seperti Java, tapi juga **bukan bahasa functional**. Fungsi memang first-class (bisa dioper, dikembalikan, jadi closure), dan itu dipakai banyak di Go, tapi data umumnya mutable, loop `for` biasa itu normal, dan tidak ada map/filter/reduce bawaan di slice. Kalau ditanya "Go itu OOP atau functional?", jawaban yang aman: *"Go mengambil sedikit dari keduanya (method + interface, fungsi first-class), tapi gayanya sendiri: data sederhana, error sebagai nilai, komposisi, dan concurrency lewat goroutine + channel."*
 
-| Konsep | Java | Go | Contoh |
-|---|---|---|---|
-| Class | `class Account { ... }` | `type Account struct { ... }` + method | [encapsulation.go](core/oop/encapsulation.go) |
-| Constructor | `new Account(...)` | fungsi biasa `NewAccount(...)`, konvensi | idem |
-| private / public | keyword, per class | huruf kecil / Besar, **per package** | idem |
-| Getter | `getOwner()` | `Owner()` (tanpa "Get") | idem |
-| `implements` | eksplisit | **implisit**: punya method-nya = memenuhi interface | [interfaces.go](core/oop/interfaces.go) |
-| `extends` | inheritance + virtual dispatch | embedding = komposisi, **tanpa** virtual dispatch | [composition.go](core/oop/composition.go) |
-| Abstract class / template method | `abstract class` | interface + fungsi yang menerima interface | idem |
-| `instanceof` / pattern matching | `if (s instanceof Circle c)` | type switch `switch v := s.(type)` | interfaces.go |
-| `this` | implisit | receiver eksplisit `func (a *Account) ...` | [receivers.go](core/oop/receivers.go) |
-| Generics | type erasure, `<T extends Comparable<T>>` | tanpa erasure, constraint `cmp.Ordered`, union `~int \| ~float64` | [generics.go](core/oop/generics.go) |
-| Exception | `throw` / `try-catch` | `error` sebagai return value, `errors.Is`/`errors.As`, wrap `%w` | encapsulation.go |
-| `Optional<T>` | `Optional.empty()` | pola "comma ok": `v, ok := ...` | generics.go (Stack.Pop) |
-| `finally` | `try-finally` | `defer` | store/memory.go |
+Karena itu contoh di [`core/idiomatic`](core/idiomatic) tidak mencoba menerjemahkan 4 pilar OOP ke Go. Isinya kebiasaan yang memang dipakai orang Go sehari-hari:
 
-### 4 pilar OOP versi Go
+| File | Kebiasaan Go | Kira-kira menggantikan (Java) |
+|---|---|---|
+| [structs.go](core/idiomatic/structs.go) | struct biasa, field exported tanpa getter/setter, **zero value yang langsung bisa dipakai**, constructor cuma kalau ada validasi, embedding | class + constructor + getter/setter, `extends` |
+| [errors.go](core/idiomatic/errors.go) | **error sebagai nilai**: sentinel + `errors.Is`, error bertipe + `errors.As`, wrap dengan `%w`, `errors.Join`, jebakan typed nil | exception, try/catch, `@ControllerAdvice` |
+| [interfaces.go](core/idiomatic/interfaces.go) | **interface kecil yang didefinisikan pemakainya**, implementasi implisit, `io.Reader`/`io.Writer`, fake tanpa mock framework, type switch | `interface` + `Impl`, Mockito, `instanceof` |
+| [options.go](core/idiomatic/options.go) | **functional options** `NewClient(url, WithTimeout(..))` | Builder, constructor overload |
+| [middleware.go](core/idiomatic/middleware.go) | fungsi membungkus fungsi: middleware `func(http.Handler) http.Handler`, closure, retry | Filter, interceptor, AOP `@Around` |
+| [iter.go](core/idiomatic/iter.go) | iterator `iter.Seq`, range-over-func, lazy dan bisa berhenti lebih awal | Stream, Iterator |
+| [concurrency.go](core/idiomatic/concurrency.go) | goroutine + channel, fan-out/fan-in, `context` untuk cancel, `WaitGroup.Go` | ExecutorService, CompletableFuture |
 
-**Encapsulation.** Field huruf kecil tidak bisa diakses dari package lain. `BankAccount.balance` cuma bisa berubah lewat `Deposit`/`Withdraw`, jadi invariant saldo ≥ 0 terjaga. Bedanya dengan Java: batasnya package, bukan type. File lain di package yang sama tetap bisa baca `balance`.
+### Kalau dari Java
 
-**Abstraction.** Lewat interface kecil. Di Go, interface biasanya didefinisikan di sisi **pemakai**, bukan di sisi implementasi. Contoh nyata: `store.NoteRepository` didefinisikan di package `store` yang dipakai service, dan `rowScanner` di `store/sql.go` didefinisikan cuma buat satu fungsi. Prinsipnya: *accept interfaces, return structs*.
+Beberapa refleks Java yang sebaiknya ditinggal waktu nulis Go:
 
-**Inheritance.** Tidak ada. Penggantinya embedding:
-
-```go
-type Dog struct {
-    Animal        // field & method Animal "dipromosikan" ke Dog
-    Breed string
-}
-d.Introduce()     // memanggil Animal.Introduce
-```
-
-Jebakan favorit interviewer: kalau `Animal.Introduce()` memanggil `a.Sound()`, yang terpanggil **tetap `Animal.Sound`**, bukan `Dog.Sound`, karena receiver-nya `Animal`. Tidak ada virtual dispatch, dan `Dog` tidak bisa dipakai di tempat yang butuh `Animal`. Test-nya ada di `TestEmbeddingIsNotInheritance`.
-
-Contoh embedding yang berguna ada di `gin/internal/store/file.go`: `FileNoteRepository` meng-embed `*MemoryNoteRepository`, mewarisi semua method baca, dan cuma "override" method tulis supaya flush ke file.
-
-**Polymorphism.** Lewat interface. `TotalArea(shapes ...Shape)` bisa terima `Rectangle` dan `Circle`. Di app Gin, `NoteService` bisa jalan di atas memory, file, atau SQLite tanpa tahu bedanya, dan middleware `auth.Authenticate` bisa merangkai Basic, session, JWT, dan API key karena semuanya memenuhi `Authenticator`.
+- **Jangan bikin interface duluan.** Tulis struct konkret. Interface muncul nanti, di sisi yang butuh, dan biasanya cuma 1–2 method. Contoh nyata: `emailLookup` di interfaces.go, `store.NoteRepository` di app Gin.
+- **Jangan getter/setter untuk semua field.** Field exported itu normal. Unexported + method cuma kalau ada aturan yang dijaga (lihat `Money`).
+- **Jangan cari inheritance.** Embedding itu komposisi yang menyingkat penulisan, bukan subtype. `Derived{}.Describe()` di structs.go tetap memanggil `Base.Kind`, karena tidak ada virtual dispatch.
+- **Jangan lempar, kembalikan.** `if err != nil { return fmt.Errorf("konteks: %w", err) }` itu memang gaya Go. `panic` cuma untuk bug programmer.
+- **Jangan pakai framework DI.** Constructor biasa + wiring manual di `main.go` (lihat `gin/cmd/server/main.go`).
+- **Jangan paksa rantai stream.** Loop `for` biasa itu idiomatis. `iter.Seq` dipakai kalau memang butuh lazy atau sumbernya besar.
 
 ### Jebakan yang sering ditanya
 
-1. **Interface berisi nil pointer bukan nil.** `var p *MyErr = nil; var err error = p; err != nil` → `true`. Interface baru nil kalau type *dan* value-nya nil. Lihat `FindBuggy` vs `FindFixed`.
-2. **Value vs pointer receiver.** Method dengan receiver `T` bekerja pada salinan. Method set `T` tidak termasuk method `*T`, jadi kalau `IncPointer` pakai pointer receiver, cuma `*Counter` yang memenuhi interface, bukan `Counter`.
-3. **Map tidak thread-safe.** Akses bareng dari beberapa goroutine = data race (bahkan bisa crash `fatal error: concurrent map writes`). Pakai `sync.Mutex`/`RWMutex` atau `sync.Map`. Lihat `store/memory.go`, dan jalankan `go test -race`.
-4. **Urutan iterasi map itu acak** (sengaja). Kalau butuh urut, sort dulu.
-5. **Visibility per package**, bukan per type.
+1. **Interface berisi nil pointer bukan nil.** `var p *MyErr; var err error = p; err != nil` → `true`. Lihat `FindBuggy` vs `FindFixed` di errors.go.
+2. **Value vs pointer receiver.** Receiver `T` bekerja pada salinan. Pakai pointer kalau method mengubah state, struct-nya besar, atau berisi `sync.Mutex`. Method set `T` tidak termasuk method `*T`.
+3. **Map tidak thread-safe.** Akses bareng = data race, bahkan bisa `fatal error: concurrent map writes`. Pakai mutex (lihat `Counter`) dan jalankan `go test -race`.
+4. **Urutan iterasi map itu acak** (sengaja). Butuh urut? `slices.Sorted(maps.Keys(m))`.
+5. **Goroutine bocor.** Goroutine yang menunggu channel selamanya tidak pernah di-GC. Selalu sediakan jalan keluar lewat `ctx.Done()` (lihat `Generate`).
+6. **Visibility per package**, bukan per type.
 
 ### Pertanyaan interview yang umum + jawaban singkat
 
-- **Kenapa Go tidak punya inheritance?** Inheritance bikin coupling kuat antara parent dan child (fragile base class). Go memilih komposisi + interface, sesuai prinsip "favor composition over inheritance" yang di Java pun dianjurkan.
-- **Kapan pakai pointer receiver?** Kalau method mengubah state, struct-nya besar, atau berisi `sync.Mutex`. Konsisten dalam satu type.
-- **Bagaimana DI di Go?** Constructor injection manual di `main.go` (lihat `gin/cmd/server/main.go`). Kalau proyek besar: `google/wire` (generate kode) atau `uber-go/fx` (runtime, rasanya mirip Spring).
-- **Error vs panic?** `error` untuk kondisi yang bisa diprediksi (input salah, data tidak ada, DB down). `panic` untuk bug programmer yang seharusnya tidak terjadi. Gin `Recovery()` menangkap panic supaya server tidak mati.
-- **`context.Context` buat apa?** Membawa deadline, sinyal cancel, dan nilai per-request lintas fungsi dan goroutine. Konvensinya jadi parameter pertama. Di Java hal serupa biasanya disembunyikan di `ThreadLocal`.
+- **Kenapa Go tidak punya inheritance?** Inheritance bikin coupling kuat (fragile base class). Go memilih komposisi + interface, prinsip yang di Java pun dianjurkan ("favor composition over inheritance").
+- **Kenapa interface didefinisikan di sisi pemakai?** Karena implementasinya implisit, pemakai bisa minta tepat method yang dia butuhkan. Hasilnya interface kecil, mudah di-fake di test, dan package implementasi tidak perlu tahu siapa pemakainya.
+- **Error vs panic?** `error` untuk kondisi yang bisa diprediksi (input salah, data tidak ada, DB down). `panic` untuk bug. Gin `Recovery()` menangkap panic supaya server tidak mati.
+- **Bagaimana DI di Go?** Constructor injection manual. Proyek besar: `google/wire` (generate kode) atau `uber-go/fx` (runtime, mirip Spring).
+- **`context.Context` buat apa?** Membawa deadline, sinyal cancel, dan nilai per-request. Konvensinya parameter pertama. Di Java hal serupa biasanya disembunyikan di `ThreadLocal`.
+- **Channel atau mutex?** Channel untuk mengoper kepemilikan data atau mengatur alur antar goroutine. Mutex untuk melindungi state kecil. Dua-duanya idiomatis.
+
+Alasan di balik pilihan-pilihan ini ada di [DECISIONS.md](DECISIONS.md).
 
 ## Fitur Go modern yang dipakai di sini
 
 | Fitur | Sejak | Dipakai di |
 |---|---|---|
-| `for i := range 10` | 1.22 | core/oop generics_test.go, store tests |
-| iterator `maps.Values`, `slices.Collect` | 1.23 | store/memory.go |
+| `errors.Join` | 1.20 | core/idiomatic/errors.go |
+| `for i := range 10` | 1.22 | core/idiomatic tests, store tests |
+| iterator `iter.Seq`, range-over-func, `maps.Keys`, `slices.Collect` | 1.23 | core/idiomatic/iter.go, store/memory.go |
 | `t.Context()`, `b.Loop()`, `crypto/rand.Text()` | 1.24 | contract test, benchmark, session ID |
+| `strings.FieldsSeq` | 1.24 | core/idiomatic/iter.go |
 | `testing/synctest` (jam palsu di test) | 1.25 | auth/session_test.go |
-| `sync.WaitGroup.Go` | 1.25 | store/memory_test.go |
-| builtin `min`/`max`, package `cmp` | 1.21 | core/oop generics.go |
+| `sync.WaitGroup.Go` | 1.25 | core/idiomatic/concurrency.go, store/memory_test.go |
