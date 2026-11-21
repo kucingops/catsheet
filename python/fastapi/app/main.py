@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import auth, notes
-from app.container import Container
+from app.container import build_container
 from app.domain.models import ArchivedNoteError, DomainError, NoteNotFound, NotOwner
 from app.persistence.base import NoteRepository
 from app.settings import Settings
@@ -27,7 +27,7 @@ _STATUS: dict[type[DomainError], int] = {
 
 def create_app(settings: Settings | None = None, *, repo: NoteRepository | None = None) -> FastAPI:
     settings = settings or Settings()
-    container = Container.build(settings, repo=repo)
+    container = build_container(settings, repo=repo)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

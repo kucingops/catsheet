@@ -8,13 +8,8 @@ import pytest
 from starlette.requests import Request
 
 from app.domain.models import Role
-from app.security.authenticators import (
-    ApiKeyAuthenticator,
-    AuthError,
-    BasicAuthenticator,
-    CompositeAuthenticator,
-    JwtAuthenticator,
-)
+from app.security import authenticators as auth
+from app.security.authenticators import AuthError
 from app.security.passwords import hash_password, verify_password
 from app.security.tokens import InvalidToken, TokenService
 from app.security.users import UserStore, seeded_user_store
@@ -94,37 +89,42 @@ def test_jwt_payload_bisa_dibaca_siapa_saja(users: UserStore, tokens: TokenServi
     assert claims["sub"] == "alice"
 
 
-# ---------------- authenticators ----------------
+# ---------------- authenticators (cuma fungsi, jadi tinggal dipanggil) ----------------
 def _basic(u: str, p: str) -> dict[str, str]:
     return {"Authorization": "Basic " + base64.b64encode(f"{u}:{p}".encode()).decode()}
 
 
 def test_basic_tanpa_header_return_none(users: UserStore) -> None:
-    assert BasicAuthenticator(users).authenticate(make_request({})) is None
+    assert auth.basic(users)(make_request({})) is None
 
 
 def test_basic_salah_raise(users: UserStore) -> None:
     with pytest.raises(AuthError) as exc:
-        BasicAuthenticator(users).authenticate(make_request(_basic("alice", "x")))
+        auth.basic(users)(make_request(_basic("alice", "x")))
     assert exc.value.scheme == "Basic"
 
 
 def test_basic_header_rusak(users: UserStore) -> None:
     with pytest.raises(AuthError, match="rusak"):
-        BasicAuthenticator(users).authenticate(make_request({"Authorization": "Basic !!!"}))
+        auth.basic(users)(make_request({"Authorization": "Basic !!!"}))
 
 
 def test_composite_ambil_yang_cocok(users: UserStore, tokens: TokenService) -> None:
-    chain = CompositeAuthenticator(
-        JwtAuthenticator(users, tokens), ApiKeyAuthenticator(users), BasicAuthenticator(users)
-    )
-    assert chain.authenticate(make_request({"X-API-Key": "admin-api-key"})).username == "admin"
-    assert chain.authenticate(make_request(_basic("bob", "bob123"))).username == "bob"
-    assert chain.authenticate(make_request({})) is None
+    chain = auth.first_match(auth.bearer_jwt(users, tokens), auth.api_key(users), auth.basic(users))
+    assert chain(make_request({"X-API-Key": "admin-api-key"})).username == "admin"
+    assert chain(make_request(_basic("bob", "bob123"))).username == "bob"
+    assert chain(make_request({})) is None
 
 
 def test_composite_stop_di_kredensial_salah(users: UserStore, tokens: TokenService) -> None:
     """Kredensial salah harus 401, JANGAN fallback ke authenticator berikutnya."""
-    chain = CompositeAuthenticator(ApiKeyAuthenticator(users), BasicAuthenticator(users))
+    chain = auth.first_match(auth.api_key(users), auth.basic(users))
     with pytest.raises(AuthError):
-        chain.authenticate(make_request({"X-API-Key": "salah", **_basic("bob", "bob123")}))
+        chain(make_request({"X-API-Key": "salah", **_basic("bob", "bob123")}))
+
+
+def test_authenticator_bisa_diganti_lambda(users: UserStore) -> None:
+    """Karena kontraknya cuma `Request -> User | None`, test double cukup lambda."""
+    bob = users.find("bob")
+    chain = auth.first_match(lambda _: None, lambda _: bob, auth.basic(users))
+    assert chain(make_request({})) is bob

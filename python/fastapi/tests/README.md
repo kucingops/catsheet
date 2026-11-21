@@ -1,7 +1,7 @@
 # Unit test dengan pytest
 
 ```bash
-uv run pytest                      # semua (82 test, ~7 detik, mayoritas waktu buat hashing Argon2)
+uv run pytest                      # semua (87 test, ~7 detik, mayoritas waktu buat hashing Argon2)
 uv run pytest -k jwt -v            # filter nama test
 uv run pytest tests/test_repositories.py -x   # stop di failure pertama
 uv run pytest --lf                 # jalanin ulang yang gagal terakhir
@@ -12,7 +12,7 @@ uv run pytest --lf                 # jalanin ulang yang gagal terakhir
 | File | Jenis | Yang dites | Dependency luar |
 |---|---|---|---|
 | `test_domain.py` | unit | aturan bisnis `Note`, `User` | nggak ada |
-| `test_note_service.py` | unit | service, pakai **Mock** dan **Fake** | nggak ada |
+| `test_note_service.py` | unit | fungsi service, pakai **Mock** dan **Fake** | nggak ada |
 | `test_security_unit.py` | unit | hashing, JWT, authenticator, pakai `Request` palsu | nggak ada |
 | `test_repositories.py` | contract / integration | 4 repository, test yang sama | file tmp, SQLite in-memory |
 | `test_api.py` | integration | HTTP end-to-end via `TestClient` | app utuh |

@@ -2,6 +2,11 @@
 
 Satu kontrak [`NoteRepository`](base.py), empat implementasi. Pilih lewat env `APP_STORAGE`.
 
+Kontraknya `typing.Protocol`, bukan `ABC`: keempat class repository **nggak inherit apa pun**, cuma
+punya method dengan bentuk yang sama (structural typing, kayak interface di Go). Kalau dari Java:
+bayangin `implements` yang nggak perlu ditulis. Type checker yang nge-cek bentuknya, contract test
+yang nge-cek perilakunya. Repository tetap class karena memang pegang state (koneksi, file path, lock).
+
 | File | Cara simpan | Setara di Java | Kapan dipakai |
 |---|---|---|---|
 | [`memory.py`](memory.py) | `dict` di RAM | `ConcurrentHashMap` | test, prototyping, cache |

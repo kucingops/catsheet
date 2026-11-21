@@ -5,10 +5,9 @@ from itertools import count
 from threading import Lock
 
 from app.domain.models import Note
-from app.persistence.base import NoteRepository
 
 
-class InMemoryNoteRepository(NoteRepository):
+class InMemoryNoteRepository:  # nggak inherit apa-apa: cukup cocok dengan Protocol NoteRepository
     def __init__(self) -> None:
         self._data: dict[int, Note] = {}
         self._ids = count(1)
@@ -36,3 +35,6 @@ class InMemoryNoteRepository(NoteRepository):
     def delete(self, note_id: int) -> bool:
         with self._lock:
             return self._data.pop(note_id, None) is not None
+
+    def close(self) -> None:
+        pass  # nggak ada resource yang perlu ditutup

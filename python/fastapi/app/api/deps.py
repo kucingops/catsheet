@@ -2,6 +2,10 @@
 
 Pakai `Security(...)` dengan scheme bawaan FastAPI (auto_error=False) supaya tombol
 "Authorize" di Swagger UI (/docs) muncul, tapi logic sebenarnya di authenticators.py.
+
+Dependency di FastAPI itu cuma fungsi. `Depends(f)` = "panggil f dulu, kasih hasilnya ke sini".
+Dependency boleh punya dependency lagi, FastAPI yang nyusun grafnya (mirip @Autowired, tapi
+eksplisit di signature).
 """
 
 from collections.abc import Callable
@@ -12,12 +16,13 @@ from fastapi.security import APIKeyHeader, HTTPBasic, OAuth2PasswordBearer
 
 from app.container import Container
 from app.domain.models import Role, User
-from app.security.authenticators import Authenticator, AuthError
-from app.services.note_service import NoteService
+from app.persistence.base import NoteRepository
+from app.security.authenticators import API_KEY_HEADER, Authenticator, AuthError
 
-basic_scheme = HTTPBasic(auto_error=False)
-api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
-bearer_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
+# Scheme ini cuma buat dokumentasi OpenAPI (tombol Authorize), validasinya di authenticators.py
+BasicDoc = Annotated[object, Security(HTTPBasic(auto_error=False))]
+ApiKeyDoc = Annotated[object, Security(APIKeyHeader(name=API_KEY_HEADER, auto_error=False))]
+BearerDoc = Annotated[object, Security(OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False))]
 
 
 def get_container(request: Request) -> Container:
@@ -27,57 +32,47 @@ def get_container(request: Request) -> Container:
 ContainerDep = Annotated[Container, Depends(get_container)]
 
 
-def get_note_service(c: ContainerDep) -> NoteService:
-    return c.notes
+def get_repo(c: ContainerDep) -> NoteRepository:
+    return c.repo
 
 
-NoteServiceDep = Annotated[NoteService, Depends(get_note_service)]
+RepoDep = Annotated[NoteRepository, Depends(get_repo)]
 
 
-def _run(authenticator: Authenticator, request: Request) -> User:
+def _run(authenticate: Authenticator, request: Request, scheme: str) -> User:
     try:
-        user = authenticator.authenticate(request)
+        user = authenticate(request)
     except AuthError as e:
         raise _unauthorized(str(e), e.scheme) from None
     if user is None:
-        raise _unauthorized("butuh autentikasi", authenticator.scheme)
+        raise _unauthorized("butuh autentikasi", scheme)
     return user
 
 
 def _unauthorized(detail: str, scheme: str) -> HTTPException:
     # Untuk Basic, header ini bikin browser munculin popup login
-    return HTTPException(
-        status.HTTP_401_UNAUTHORIZED,
-        detail=detail,
-        headers={"WWW-Authenticate": scheme if scheme != "Composite" else "Bearer"},
-    )
+    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail=detail, headers={"WWW-Authenticate": scheme})
 
 
 # --- satu dependency per jenis login -----------------------------------------
-def basic_user(request: Request, c: ContainerDep, _=Security(basic_scheme)) -> User:
-    return _run(c.basic, request)
+def basic_user(request: Request, c: ContainerDep, _: BasicDoc) -> User:
+    return _run(c.basic, request, "Basic")
 
 
-def api_key_user(request: Request, c: ContainerDep, _=Security(api_key_scheme)) -> User:
-    return _run(c.api_key, request)
+def api_key_user(request: Request, c: ContainerDep, _: ApiKeyDoc) -> User:
+    return _run(c.api_key, request, "ApiKey")
 
 
-def jwt_user(request: Request, c: ContainerDep, _=Security(bearer_scheme)) -> User:
-    return _run(c.jwt, request)
+def jwt_user(request: Request, c: ContainerDep, _: BearerDoc) -> User:
+    return _run(c.jwt, request, "Bearer")
 
 
 def session_user(request: Request, c: ContainerDep) -> User:
-    return _run(c.session, request)
+    return _run(c.session, request, "Session")
 
 
-def any_user(
-    request: Request,
-    c: ContainerDep,
-    _b=Security(bearer_scheme),
-    _k=Security(api_key_scheme),
-    _h=Security(basic_scheme),
-) -> User:
-    return _run(c.any, request)
+def any_user(request: Request, c: ContainerDep, _b: BearerDoc, _k: ApiKeyDoc, _h: BasicDoc) -> User:
+    return _run(c.any, request, "Bearer")
 
 
 CurrentUser = Annotated[User, Depends(any_user)]
@@ -85,7 +80,7 @@ CurrentUser = Annotated[User, Depends(any_user)]
 
 # --- authorization (role) ----------------------------------------------------
 def require_role(role: Role) -> Callable[..., User]:
-    """Dependency factory. Setara @PreAuthorize("hasRole('ADMIN')").
+    """Dependency factory (closure lagi). Setara @PreAuthorize("hasRole('ADMIN')").
 
     401 = belum login / kredensial salah (authentication)
     403 = sudah login tapi nggak punya hak (authorization)

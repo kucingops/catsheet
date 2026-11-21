@@ -10,7 +10,7 @@ uv run fastapi dev app/main.py                                # storage in-memor
 APP_STORAGE=json uv run fastapi dev app/main.py               # simpan ke data/notes.json
 APP_STORAGE=sqlite APP_SQLITE_PATH=data/raw.db uv run fastapi dev app/main.py
 APP_STORAGE=sqlalchemy APP_DATABASE_URL=sqlite:///data/orm.db uv run fastapi dev app/main.py
-uv run pytest                                                 # 82 test
+uv run pytest                                                 # 87 test
 ```
 
 Swagger UI: http://localhost:8000/docs (tombol **Authorize** bisa pakai Basic, API key, atau OAuth2 password → JWT).
@@ -36,12 +36,12 @@ curl -b jar localhost:8000/whoami/session
 
 ```
 HTTP ──► api/ (router, DTO Pydantic, dependency security)
-            │  Depends(any_user) ──► security/ (Authenticator: Basic | ApiKey | JWT | Session)
+            │  Depends(any_user) ──► security/ (fungsi: basic | api_key | bearer_jwt | session)
             ▼
-         services/NoteService  (business rule, ownership check)
+         services/notes.py  (fungsi: business rule, ownership check)
             │  bergantung ke abstraksi
             ▼
-         persistence/NoteRepository (ABC)
+         persistence/NoteRepository (Protocol, structural typing)
             ├── InMemoryNoteRepository   (dict)
             ├── JsonFileNoteRepository   (file)
             ├── SqliteNoteRepository     (SQL mentah)
@@ -49,8 +49,11 @@ HTTP ──► api/ (router, DTO Pydantic, dependency security)
          domain/  Note, User, Role, exceptions  ← nggak import apa pun dari layer lain
 ```
 
-Semua object dirakit sekali di [`app/container.py`](app/container.py) (composition root) lalu
-diambil di endpoint lewat `Depends`. App dibuat lewat factory `create_app(settings, repo=...)` supaya
+Semua dependency dirakit sekali di [`app/container.py`](app/container.py) (`build_container()`,
+composition root) lalu diambil di endpoint lewat `Depends`. Class cuma dipakai di tempat yang memang
+punya state (repository yang pegang koneksi, `UserStore`) atau data (dataclass `Note`, `User`, DTO
+Pydantic). Service dan authenticator sengaja dibikin fungsi, alasannya di
+[`../DECISIONS.md`](../DECISIONS.md). App dibuat lewat factory `create_app(settings, repo=...)` supaya
 test bisa bikin app terisolasi.
 
 ## Spring Boot → FastAPI
