@@ -27,3 +27,5 @@ catsheet/
 | Testing | `@SpringBootTest`, slice test (`@WebMvcTest`, `@DataJpaTest`), Mockito |
 
 Setiap topik punya `README.md` sendiri: penjelasan singkat, pertanyaan interview yang umum, dan link ke kode contohnya.
+
+Python 3.14 + FastAPI: lihat [python/README.md](python/README.md).
