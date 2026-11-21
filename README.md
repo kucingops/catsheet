@@ -27,3 +27,5 @@ catsheet/
 | Testing | `@SpringBootTest`, slice test (`@WebMvcTest`, `@DataJpaTest`), Mockito |
 
 Setiap topik punya `README.md` sendiri: penjelasan singkat, pertanyaan interview yang umum, dan link ke kode contohnya.
+
+Java / Quarkus (Java 25 + Quarkus 3.40): lihat [java/quarkus](java/quarkus/README.md).
