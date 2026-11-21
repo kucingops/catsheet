@@ -12,7 +12,7 @@ catsheet/
 │       ├── security/    # multiple login: form+session, basic, JWT, OAuth2, ...
 │       ├── persistence/ # simpan data: JPA/Hibernate, JdbcTemplate, in-memory/file
 │       └── oop/         # implementasi OOP di aplikasi Spring + penjelasan
-├── js/                  # Node 26 + NestJS 12: OOP, multiple login, persistence, test -> js/README.md
+├── js/                  # Node 26 + NestJS 12: JS idiomatis (function, closure, module, async), multiple login, persistence, test -> js/README.md
 └── go/                  # nanti
 ```
 
