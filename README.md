@@ -16,6 +16,8 @@ catsheet/
 └── go/                  # nanti
 ```
 
+.NET: [dotnet/](dotnet/README.md) (.NET 11 / ASP.NET Core 11)
+
 ## Isi Java / Spring Boot (rencana)
 
 | Topik | Yang dibahas |

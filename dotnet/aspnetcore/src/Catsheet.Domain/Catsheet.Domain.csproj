@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domain sengaja TANPA dependency framework apa pun: murni OOP + BCL. -->
+</Project>

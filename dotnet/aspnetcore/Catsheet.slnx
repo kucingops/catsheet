@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Catsheet.Domain/Catsheet.Domain.csproj" />
+    <Project Path="src/Catsheet.Api/Catsheet.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Catsheet.Domain.Tests/Catsheet.Domain.Tests.csproj" />
+    <Project Path="tests/Catsheet.Api.Tests/Catsheet.Api.Tests.csproj" />
+  </Folder>
+</Solution>
