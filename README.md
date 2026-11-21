@@ -30,4 +30,5 @@ catsheet/
 
 Setiap topik punya `README.md` sendiri: penjelasan singkat, pertanyaan interview yang umum, dan link ke kode contohnya.
 
+Java / Quarkus (Java 25 + Quarkus 3.40): lihat [java/quarkus](java/quarkus/README.md).
 PHP 8.6 + Laravel 13: lihat [php/README.md](php/README.md).
