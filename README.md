@@ -13,7 +13,7 @@ catsheet/
 │       ├── persistence/ # simpan data: JPA/Hibernate, JdbcTemplate, in-memory/file
 │       └── oop/         # implementasi OOP di aplikasi Spring + penjelasan
 ├── js/                  # nanti
-└── go/                  # nanti
+└── go/                  # Go 1.27 + Gin 1.12, lihat go/README.md
 ```
 
 ## Isi Java / Spring Boot (rencana)
