@@ -1,0 +1,23 @@
+{
+  "name": "catsheet-js-core",
+  "version": "0.0.1",
+  "private": true,
+  "description": "OOP & JS fundamentals dalam TypeScript murni (tanpa framework)",
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "demo": "node src/demo.ts",
+    "format": "prettier --write src"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "prettier": "^3.10.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.12"
+  }
+}

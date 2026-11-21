@@ -12,9 +12,11 @@ catsheet/
 │       ├── security/    # multiple login: form+session, basic, JWT, OAuth2, ...
 │       ├── persistence/ # simpan data: JPA/Hibernate, JdbcTemplate, in-memory/file
 │       └── oop/         # implementasi OOP di aplikasi Spring + penjelasan
-├── js/                  # nanti
-└── go/                  # Go 1.27 + Gin 1.12, lihat go/README.md
+├── js/                  # Node 26 + NestJS 12: OOP, multiple login, persistence, test -> js/README.md
+└── go/                  # Go 1.27 + Gin 1.12, gaya Go idiomatis -> go/README.md
 ```
+
+.NET: [dotnet/](dotnet/README.md) (.NET 11 / ASP.NET Core 11)
 
 ## Isi Java / Spring Boot (rencana)
 
@@ -27,3 +29,6 @@ catsheet/
 | Testing | `@SpringBootTest`, slice test (`@WebMvcTest`, `@DataJpaTest`), Mockito |
 
 Setiap topik punya `README.md` sendiri: penjelasan singkat, pertanyaan interview yang umum, dan link ke kode contohnya.
+
+Java / Quarkus (Java 25 + Quarkus 3.40): lihat [java/quarkus](java/quarkus/README.md).
+PHP 8.6 + Laravel 13: lihat [php/README.md](php/README.md).
