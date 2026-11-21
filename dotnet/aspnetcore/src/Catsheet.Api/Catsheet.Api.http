@@ -1,0 +1,58 @@
+# Jalankan: dotnet run --project src/Catsheet.Api   (lalu klik "Send Request" di IDE)
+@host = http://localhost:5080
+
+### Health (publik)
+GET {{host}}/health
+
+### 1) HTTP Basic
+GET {{host}}/api/me
+Authorization: Basic alice:alice123
+
+### 2) JWT: ambil token
+# @name login
+POST {{host}}/auth/token
+Content-Type: application/json
+
+{ "username": "alice", "password": "alice123" }
+
+### 2b) JWT: pakai token
+GET {{host}}/api/me/jwt-admin
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 3) API key
+GET {{host}}/api/me
+X-Api-Key: dev-api-key-123
+
+### 4) Cookie login (cookie disimpan otomatis oleh client .http)
+POST {{host}}/auth/cookie/login
+Content-Type: application/json
+
+{ "username": "bob", "password": "bob123" }
+
+### 4b) Pakai cookie
+GET {{host}}/api/me
+
+### Buat produk fisik (butuh catalog:write)
+POST {{host}}/api/products
+Authorization: Basic alice:alice123
+Content-Type: application/json
+
+{ "kind": "Physical", "name": "Keyboard", "price": 750000, "currency": "IDR", "stock": 5, "weightKg": 1.2 }
+
+### Buat produk digital pakai API key (role Service, tapi punya permission)
+POST {{host}}/api/products
+X-Api-Key: dev-api-key-123
+Content-Type: application/json
+
+{ "kind": "Digital", "name": "Kursus .NET", "price": 150000, "downloadUrl": "https://example.com/kursus" }
+
+### Bob tidak boleh tulis catalog → 403
+POST {{host}}/api/products
+Authorization: Basic bob:bob123
+Content-Type: application/json
+
+{ "kind": "Digital", "name": "X", "price": 1000, "downloadUrl": "https://example.com/x" }
+
+### List produk
+GET {{host}}/api/products
+Authorization: Basic bob:bob123

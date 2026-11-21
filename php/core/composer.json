@@ -1,0 +1,25 @@
+{
+    "name": "catsheet/php-core",
+    "description": "Cheatsheet PHP 8.6: OOP, SOLID, design pattern, fitur bahasa modern, dan unit test.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.6"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.5"
+    },
+    "autoload": {
+        "psr-4": { "Catsheet\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Catsheet\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true,
+        "platform-check": false
+    }
+}

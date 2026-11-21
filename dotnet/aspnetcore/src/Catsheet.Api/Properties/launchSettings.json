@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "efcore": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development", "Persistence__Provider": "EfCore" }
+    },
+    "ado": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Persistence__Provider": "Ado",
+        "Persistence__ConnectionString": "Data Source=catsheet-ado.db"
+      }
+    },
+    "inmemory": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development", "Persistence__Provider": "InMemory" }
+    }
+  }
+}
