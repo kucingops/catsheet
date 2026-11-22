@@ -30,5 +30,6 @@ catsheet/
 
 Setiap topik punya `README.md` sendiri: penjelasan singkat, pertanyaan interview yang umum, dan link ke kode contohnya.
 
+Python 3.14 + FastAPI: lihat [python/README.md](python/README.md).
 Java / Quarkus (Java 25 + Quarkus 3.40): lihat [java/quarkus](java/quarkus/README.md).
 PHP 8.6 + Laravel 13: lihat [php/README.md](php/README.md).
