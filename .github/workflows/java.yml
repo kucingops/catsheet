@@ -1,0 +1,31 @@
+name: java
+
+on:
+  push:
+    branches: [main]
+    paths: ["java/**", ".github/workflows/java.yml"]
+  pull_request:
+    paths: ["java/**", ".github/workflows/java.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [spring-boot, quarkus]
+    defaults:
+      run:
+        working-directory: java/${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+          cache-dependency-path: java/${{ matrix.project }}/pom.xml
+      - run: mvn -B -ntp test
