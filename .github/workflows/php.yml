@@ -1,0 +1,33 @@
+name: php
+
+on:
+  push:
+    branches: [main]
+    paths: ["php/**", ".github/workflows/php.yml"]
+  pull_request:
+    paths: ["php/**", ".github/workflows/php.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [core, laravel]
+    defaults:
+      run:
+        working-directory: php/${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.6"
+          extensions: pdo_sqlite, sqlite3
+          coverage: none
+      - run: composer install --no-interaction --no-progress
+      - name: test
+        run: |
+          if [ -f artisan ]; then php artisan test; else composer test; fi
