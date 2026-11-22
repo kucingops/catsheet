@@ -62,3 +62,8 @@ def test_mutasi_objek_setelah_save_tidak_bocor(any_repo: NoteRepository) -> None
     note = any_repo.save(_note(title="asli"))
     note.title = "diubah tanpa save"
     assert any_repo.get(note.id).title == "asli"
+
+
+def test_implementasi_nggak_inherit_protocol(any_repo: NoteRepository) -> None:
+    """Structural typing: cocok karena bentuknya sama, bukan karena `extends`/`implements`."""
+    assert type(any_repo).__mro__ == (type(any_repo), object)

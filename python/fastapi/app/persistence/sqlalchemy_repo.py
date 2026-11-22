@@ -20,7 +20,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.domain.models import Note
-from app.persistence.base import NoteRepository
 
 
 class UtcDateTime(TypeDecorator[datetime]):
@@ -67,7 +66,7 @@ class NoteRow(Base):
         )
 
 
-class SqlAlchemyNoteRepository(NoteRepository):
+class SqlAlchemyNoteRepository:
     def __init__(self, url: str = "sqlite+pysqlite:///:memory:") -> None:
         kwargs: dict = {}
         if url.endswith(":memory:"):

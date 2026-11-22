@@ -1,70 +1,93 @@
-# OOP di Python, dari kacamata anak Java
+# Python yang Pythonic (buat anak Java)
 
-Kode: [`oop/pillars.py`](oop/pillars.py), [`oop/protocols.py`](oop/protocols.py), [`oop/patterns.py`](oop/patterns.py)
-Test: [`tests/test_oop.py`](tests/test_oop.py) → `uv run pytest`
+Kode: [`pythonic/`](pythonic/) · Test: [`tests/test_pythonic.py`](tests/test_pythonic.py) → `uv run pytest`
+Tiap modul bisa dijalankan langsung: `uv run python -m pythonic.functions`
 
-## Peta cepat Java → Python
+Python itu multi-paradigma. OOP ada, tapi bukan default. Kode Python yang bagus biasanya
+kelihatan kayak gini: **data di dataclass, logic di fungsi, koleksi diolah pakai comprehension
+atau generator, resource dibungkus `with`, dan polymorphism lewat duck typing**. Class dipakai
+kalau memang ada state yang harus dijaga.
 
-| Java | Python | Catatan |
+```python
+>>> import this   # The Zen of Python, baca sekali, sering ditanya
+Simple is better than complex.
+Flat is better than nested.
+There should be one-- and preferably only one --obvious way to do it.
+```
+
+## Urutan baca
+
+| # | Modul | Isi | Pengganti apa di Java |
+|---|---|---|---|
+| 1 | [`functions.py`](pythonic/functions.py) | fungsi sebagai value, closure, dispatch table, decorator, `functools` (`cache`, `partial`, `singledispatch`) | Strategy/Command/Factory class, AOP, method overloading |
+| 2 | [`data.py`](pythonic/data.py) | `@dataclass`, `NamedTuple`, `TypedDict`, `StrEnum`, `match/case`, immutable update | `record`, Lombok, `enum`, `switch` pattern |
+| 3 | [`iteration.py`](pythonic/iteration.py) | list/dict/set comprehension, generator & `yield`, `itertools`, `collections` | Stream API, `Iterator<T>`, `Collectors` |
+| 4 | [`protocols.py`](pythonic/protocols.py) | duck typing, `Protocol`, DI lewat parameter, generics 3.12+, dunder method | `interface`, `Comparable`, constructor injection |
+| 5 | [`resources.py`](pythonic/resources.py) | `with`, `@contextmanager`, `ExitStack`, EAFP vs LBYL, exception chaining, `ExceptionGroup` | try-with-resources, checked exception |
+| 6 | [`objects.py`](pythonic/objects.py) | kapan class itu tepat, `@property`, composition, ABC + template method, mixin, anti-pattern | 4 pilar OOP |
+
+## Kebiasaan Java → versi Python
+
+| Kebiasaan dari Java | Versi Pythonic | Contoh |
 |---|---|---|
-| `private` / `protected` | `_nama` (konvensi), `__nama` (name mangling) | Nggak ada enforcement. "We're all consenting adults." |
-| getter/setter | `@property` | Mulai dari atribut biasa, ganti jadi property kalau butuh logic, API nggak berubah |
-| `interface` | `ABC` + `@abstractmethod` (nominal) atau `Protocol` (struktural) | `Protocol` = interface implisit kayak Go |
-| `abstract class` | `ABC` | Error muncul saat **instansiasi**, bukan compile |
-| `record` / Lombok `@Value` | `@dataclass(frozen=True, slots=True)` | Dapat `__init__`, `__repr__`, `__eq__`, `__hash__` gratis |
-| `toString()` | `__repr__` (buat developer), `__str__` (buat user) | |
-| `equals()` / `hashCode()` | `__eq__` / `__hash__` | Override `__eq__` doang → objek jadi unhashable |
-| `Comparable` | `__lt__` + `@functools.total_ordering` | |
-| operator overloading | `__add__`, `__len__`, `__iter__`, `__getitem__`, ... | Ini yang bikin `len(x)`, `for i in x`, `a + b` jalan |
-| `static` method | `@staticmethod` | |
-| static factory `of(...)` | `@classmethod` | Dapat `cls`, jadi ikut subclass |
-| generics `<T>` | `class Stack[T]:` (3.12+) | Cuma buat type checker; runtime nggak dicek (mirip erasure) |
-| `extends A, B` (nggak bisa) | multiple inheritance boleh | Urutan lookup = MRO (C3), cek `Kelas.__mro__` |
-| `final` | `typing.final` / `Final` | Cuma dicek type checker |
-| `enum` | `enum.Enum`, `StrEnum` | |
-| Checked exception | nggak ada | Semua exception unchecked |
+| Interface + N class buat Strategy | fungsi biasa / lambda | `checkout(total, ten_percent)` |
+| Strategy berparameter (field + constructor) | closure | `flat_cut(15_000)` |
+| `switch`/factory `Map<String, Bean>` | dict berisi fungsi + decorator registrasi | `PAYMENT_HANDLERS`, `@payment("card")` |
+| AOP `@Around` | decorator | `@retry(3)`, `@timed` |
+| Singleton | variabel module, atau `@cache` di fungsi | `get_settings()` |
+| Method overloading | default/keyword argument, `@singledispatch` | `describe(x)` |
+| Class `XxxUtils` + static method | fungsi di module | `shout()` vs `StringUtils.shout()` |
+| Getter/setter | atribut publik, nanti `@property` kalau perlu | `Account.balance` |
+| `record` / Lombok `@Value` | `@dataclass(frozen=True, slots=True)` | `Money` |
+| Pair/Tuple class | `NamedTuple`, atau tuple biasa + unpacking | `count, total, avg = stats(xs)` |
+| `stream().filter().map().toList()` | comprehension | `[x * x for x in xs if x % 2 == 0]` |
+| `implements Iterator<T>` | generator `yield` | `countdown(3)` |
+| `implements Foo` | nggak perlu: duck typing / `Protocol` | `broadcast([EmailNotifier(), SmsNotifier()])` |
+| `<T extends Comparable<T>>` | `def smallest[T: SupportsLessThan](...)` | |
+| `Comparator.comparing(...)` | `key=` function | `sorted(people, key=lambda p: (-p["age"], p["name"]))` |
+| try-with-resources | `with` + `@contextmanager` | `with transaction(log):` |
+| `if (map.containsKey(k))` lalu `get` | EAFP: `try: d[k] except KeyError` | `port_eafp()` |
+| `for (int i = 0; ...)` | `enumerate`, `zip`, `range` | `numbered()`, `to_dict()` |
+| Constructor injection | parameter fungsi (default bisa diganti di test) | `greeting(clock=lambda: 7)` |
 
-## 4 pilar, singkatnya
+## Terus OOP-nya di mana?
 
-1. **Encapsulation.** Sembunyikan state, ekspos behavior. `BankAccount._balance` cuma bisa diubah lewat `deposit/withdraw`; `balance` itu read-only property.
-2. **Inheritance.** `SavingsAccount(BankAccount)` override `withdraw` dan panggil `super()`. Hati-hati: inheritance = coupling paling kuat.
-3. **Abstraction.** `Shape(ABC)` mendefinisikan kontrak `area()`. `Shape()` langsung → `TypeError`.
-4. **Polymorphism.** `total_area(shapes)` nggak peduli bentuknya apa. Di Python ditambah **duck typing**: `broadcast()` menerima objek apa pun yang punya `send()`, tanpa perlu inherit.
+Masih ada, cuma ditaruh di tempat yang pas ([`objects.py`](pythonic/objects.py)):
 
-Bonus: **composition over inheritance**, contohnya `Order` *punya* `list[LineItem]`, bukan turunan `list`.
+- **Encapsulation**: `Account` punya invariant (saldo nggak boleh minus), `_balance` + `@property`.
+  Nggak ada `private` beneran, `_x` itu konvensi, `__x` cuma name mangling.
+- **Composition**: `Ledger` *punya* `Account`.
+- **Inheritance + abstraction**: `Report(ABC)` dengan template method `render()`. ABC dipakai karena
+  ada implementasi yang di-share. Kalau cuma butuh kontrak, pakai `Protocol`.
+- **Polymorphism**: lebih sering lewat duck typing daripada lewat hierarki class.
+- **Mixin** + MRO: `Customer(JsonMixin)`, cek `Customer.__mro__`.
 
-## SOLID versi Python (lihat `patterns.py`)
-
-| Prinsip | Contoh di kode |
-|---|---|
-| **S**ingle Responsibility | `NoteService` (bisnis) vs `NoteRepository` (storage) vs `Authenticator` (login) di app FastAPI |
-| **O**pen/Closed | Strategy diskon: tambah fungsi baru, `checkout()` nggak diubah. Registry `@register` buat payment gateway |
-| **L**iskov Substitution | Contoh pelanggaran klasik `Square(Rectangle)`. Contoh yang benar: 4 repository lulus contract test yang sama |
-| **I**nterface Segregation | `Protocol` kecil (`Notifier` cuma 1 method) |
-| **D**ependency Inversion | `StoreService(clock: Clock)` → di test pakai `FixedClock` |
-
-## Pattern yang "menghilang" di Python
-
-- **Strategy / Command** → cukup function atau lambda (function itu first-class object).
-- **Singleton** → module-level object, atau `@functools.cache` di factory function.
-- **Factory** → dict `{key: Class}` + decorator buat registrasi.
-- **Iterator** → generator (`yield`).
-- **Decorator (GoF)** → decorator Python (`@`) buat function; untuk objek tetap bisa wrapper class.
-- **Builder** → jarang perlu, karena ada keyword argument + default value.
+Di app FastAPI, prinsip yang sama dipakai: entity pakai dataclass dengan behavior (`Note.edit()`),
+repository pakai `Protocol` (nggak ada `extends`), service dan authenticator berupa fungsi. Lihat
+[`../DECISIONS.md`](../DECISIONS.md).
 
 ## Gotcha yang sering ditanya
 
 - **Mutable default argument**: `def f(x=[])` → list-nya dipakai bareng antar panggilan. Pakai `None` atau `field(default_factory=list)`.
-- **`is` vs `==`**: `is` = identitas (kayak `==` di Java untuk object), `==` = equality (kayak `.equals()`).
-- **Class attribute vs instance attribute**: atribut yang didefinisikan di body class itu di-share semua instance.
-- **`__slots__`** (atau `@dataclass(slots=True)`): hemat memori & cegah typo atribut baru.
-- **Annotations di 3.14 itu lazy (PEP 649/749)**: nggak perlu lagi `from __future__ import annotations` atau tanda kutip buat forward reference (`def __add__(self, other: Money) -> Money` langsung jalan).
-- **GIL**: thread nggak jalan paralel untuk kode CPU-bound. 3.14 punya build *free-threaded* resmi (`python3.14t`) tanpa GIL. Untuk I/O-bound, thread & asyncio tetap efektif.
+- **`is` vs `==`**: `is` = identitas (kayak `==` objek di Java), `==` = equality (kayak `.equals()`).
+- **Late binding closure**: `[lambda: i for i in range(3)]` semuanya return 2. Fix: `lambda i=i: i`.
+- **Generator cuma bisa dipakai sekali**: habis di-`list()`, iterasi kedua kosong.
+- **`groupby` cuma ngelompokin yang berurutan**: sort dulu kalau mau kayak SQL `GROUP BY`.
+- **Class attribute vs instance attribute**: atribut di body class di-share semua instance.
+- **`return NotImplemented` di dunder** (bukan `raise NotImplementedError`) supaya Python coba operand satunya.
+- **Annotations di 3.14 itu lazy (PEP 649/749)**: forward reference (`-> Money` di dalam class `Money`) langsung jalan tanpa tanda kutip.
+- **`except A, B:` tanpa kurung** valid sejak 3.14 (PEP 758).
+- **GIL**: thread nggak paralel untuk CPU-bound. 3.14 punya build free-threaded resmi (`python3.14t`). Untuk I/O-bound, thread & asyncio tetap efektif.
 
 ## Pertanyaan interview yang umum
 
-1. Bedanya `@staticmethod` dan `@classmethod`? → classmethod dapat `cls`, dipakai untuk alternative constructor yang tetap benar di subclass.
-2. Apa itu MRO? Gimana diamond problem diselesaikan? → C3 linearization; `super()` ngikutin MRO, bukan parent langsung.
-3. `ABC` vs `Protocol`, kapan pakai yang mana? → ABC kalau mau shared implementation & isinstance yang ketat; Protocol kalau mau decoupling (kelas pihak ketiga yang nggak bisa diubah).
-4. Kenapa dataclass `frozen=True` bisa jadi key dict? → karena `__hash__` di-generate dan objeknya immutable.
-5. Gimana bikin atribut "private"? → nggak bisa beneran; `_x` konvensi, `__x` cuma mangling.
+1. **Apa itu "Pythonic"?** Kode yang memanfaatkan idiom bahasa: comprehension, `with`, unpacking, duck typing, EAFP, fungsi sebagai value. Lawannya: Java/C ditulis pakai sintaks Python.
+2. **List comprehension vs generator expression?** `[...]` langsung bikin list di memori; `(...)` lazy, satu-satu. Pakai generator buat data besar/stream atau kalau cuma diiterasi sekali (`sum(x for x in xs)`).
+3. **Apa itu closure? Contoh kegunaannya?** Fungsi dalam yang ingat variabel scope luar. Dipakai buat decorator, factory fungsi, dependency injection ringan.
+4. **Decorator itu apa sebenarnya?** Sintaks gula untuk `f = deco(f)`. Decorator berparameter = fungsi yang mengembalikan decorator.
+5. **`ABC` vs `Protocol`?** ABC = nominal, harus inherit, bisa bawa implementasi bersama. Protocol = struktural, nggak perlu inherit, cocok buat decoupling dan kelas pihak ketiga.
+6. **EAFP vs LBYL?** Python lebih suka coba dulu lalu tangkap exception. Lebih ringkas dan bebas race condition antara "cek" dan "pakai".
+7. **Kenapa `@dataclass(frozen=True)` bisa jadi key dict?** Karena `__hash__` di-generate dan objeknya immutable.
+8. **`@staticmethod` vs `@classmethod`?** classmethod dapat `cls`, dipakai buat alternative constructor (`Version.parse`). staticmethod jarang perlu, biasanya cukup fungsi module.
+9. **Context manager itu apa?** Objek dengan `__enter__`/`__exit__`. `__exit__` dipanggil walau ada exception. Cara gampang bikinnya: `@contextmanager` + `yield`.
+10. **Kapan tetap pakai class?** Kalau ada state yang berubah dan invariant yang harus dijaga, atau butuh banyak method yang berbagi state yang sama.

@@ -14,10 +14,9 @@ from pathlib import Path
 from threading import Lock
 
 from app.domain.models import Note
-from app.persistence.base import NoteRepository
 
 
-class JsonFileNoteRepository(NoteRepository):
+class JsonFileNoteRepository:
     def __init__(self, path: Path) -> None:
         self._path = path
         self._lock = Lock()
@@ -72,3 +71,6 @@ class JsonFileNoteRepository(NoteRepository):
             if removed:
                 self._write(data)
             return removed
+
+    def close(self) -> None:
+        pass  # file dibuka-tutup per operasi, nggak ada handle yang nyangkut

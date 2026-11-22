@@ -11,7 +11,6 @@ from datetime import datetime
 from threading import Lock
 
 from app.domain.models import Note
-from app.persistence.base import NoteRepository
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS notes (
@@ -26,7 +25,7 @@ CREATE INDEX IF NOT EXISTS ix_notes_owner ON notes(owner);
 """
 
 
-class SqliteNoteRepository(NoteRepository):
+class SqliteNoteRepository:
     def __init__(self, dsn: str = ":memory:") -> None:
         # check_same_thread=False karena FastAPI pakai threadpool; kita jaga pakai Lock
         self._conn = sqlite3.connect(dsn, check_same_thread=False)

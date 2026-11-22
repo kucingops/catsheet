@@ -10,14 +10,20 @@ nunjukin kita paham konsepnya, bukan cuma hafal anotasi.
 
 ## Desain
 
+Authenticator itu cuma tipe fungsi: `type Authenticator = Callable[[Request], User | None]`.
+
 ```
-Authenticator (ABC)            ← Strategy
-├── BasicAuthenticator         Authorization: Basic base64(user:pass)
-├── ApiKeyAuthenticator        X-API-Key: ...
-├── JwtAuthenticator           Authorization: Bearer <jwt>
-├── SessionAuthenticator       cookie "session" (signed)
-└── CompositeAuthenticator     ← Composite + Chain of Responsibility (kayak ProviderManager)
+basic(users)              -> Authorization: Basic base64(user:pass)
+api_key(users)            -> X-API-Key: ...
+bearer_jwt(users, tokens) -> Authorization: Bearer <jwt>
+session(users)            -> cookie "session" (signed)
+first_match(*auths)       -> coba berurutan (kayak ProviderManager / filter chain)
 ```
+
+Tiap fungsi di atas adalah *factory* yang mengembalikan closure. Dependency (`users`, `tokens`)
+"diingat" closure, jadi nggak perlu class + constructor + field. Kalau dari Java: interface
+dengan satu method (`AuthenticationProvider`) di Python cukup callable, dan Composite cukup
+fungsi yang nerima banyak callable. Di test, authenticator palsu cukup `lambda _: user`.
 
 Kontrak `authenticate(request)`:
 
