@@ -1,0 +1,56 @@
+name: js
+
+on:
+  push:
+    branches: [main]
+    paths: ['js/**', '.github/workflows/js.yml']
+  pull_request:
+    paths: ['js/**', '.github/workflows/js.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: js-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: js/core (Node 26)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js/core
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: js/core/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+      - name: demo (type stripping, tanpa build)
+        run: npm run demo
+
+  nestjs:
+    name: js/nestjs (Node 26)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: js/nestjs
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: js/nestjs/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:e2e
